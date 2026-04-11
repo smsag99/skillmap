@@ -26,11 +26,11 @@ export default function Dashboard() {
     if (!user) { router.push('/login'); return }
     setUser(user)
 
-    const { data } = await supabase
-      .from('roadmaps')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
+const { data } = await supabase
+  .from('roadmaps')
+  .select('*')
+  .eq('user_id', user.id)
+  .order('created_at', { ascending: false })
 
     setRoadmaps(data || [])
     setLoading(false)
