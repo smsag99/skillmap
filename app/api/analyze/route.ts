@@ -4,7 +4,6 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! })
 
 async function generateWithRetry(contents: any, retries = 3) {
   const models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']
-  
   for (const model of models) {
     for (let i = 0; i < retries; i++) {
       try {
@@ -22,7 +21,7 @@ async function generateWithRetry(contents: any, retries = 3) {
       }
     }
   }
-  throw new Error('All models unavailable, please try again in a minute')
+  throw new Error('All models unavailable')
 }
 
 export async function POST(req: Request) {
@@ -30,7 +29,7 @@ export async function POST(req: Request) {
   const { goal, cv, pdf } = body
 
   const prompt = `
-You are a career coach AI. Analyze this CV and the user's dream job goal.
+You are an expert career coach and CV reviewer. Analyze this CV for the given dream job goal.
 
 Dream job goal: ${goal}
 
@@ -41,12 +40,36 @@ Respond ONLY with a JSON object in this exact format, no markdown, no explanatio
   "strengths": ["strength1", "strength2"],
   "gaps_summary": "A 2-3 sentence summary of the main skill gaps",
   "readiness_score": 65,
-  "extracted_text": "full text extracted from the CV"
+  "extracted_text": "full text extracted from the CV",
+  "cv_feedback": [
+    {
+      "section": "Summary / Objective",
+      "issue": "What is wrong or missing",
+      "suggestion": "Specific rewrite or improvement advice"
+    },
+    {
+      "section": "Work Experience",
+      "issue": "What is wrong or missing",
+      "suggestion": "Specific rewrite or improvement advice"
+    },
+    {
+      "section": "Skills",
+      "issue": "What is wrong or missing",
+      "suggestion": "Specific rewrite or improvement advice"
+    },
+    {
+      "section": "Overall",
+      "issue": "What is wrong or missing",
+      "suggestion": "Specific rewrite or improvement advice"
+    }
+  ]
 }
+
+cv_feedback must have exactly 4 items covering different sections of the CV.
+Be specific, actionable, and tailored to the dream job goal.
 `
 
   let contents: any
-
   if (pdf) {
     contents = [
       { inlineData: { mimeType: 'application/pdf', data: pdf } },
