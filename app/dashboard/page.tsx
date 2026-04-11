@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useIsMobile } from '@/lib/useIsMobile'
-
+import PageWrapper from '@/components/PageWrapper'
+import Skeleton from '@/components/Skeleton'
 
 interface Roadmap {
   id: string
@@ -59,15 +60,40 @@ const { data } = await supabase
     || user?.email?.split('@')[0]
     || 'there'
 
-  if (loading) return (
-    <div style={{
-      minHeight: '100vh', background: '#0d0d0f',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      color: '#555565', fontFamily: "'DM Sans', sans-serif", fontSize: 14,
-    }}>Loading...</div>
-  )
+  // replace loading return with:
+if (loading) return (
+    <PageWrapper>
+  <div style={{ minHeight: '100vh', background: '#0d0d0f', fontFamily: "'DM Sans', sans-serif" }}>
+    <nav style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      padding: '16px 40px', borderBottom: '1px solid #1e1e24',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{
+          width: 30, height: 30, borderRadius: 8,
+          background: 'linear-gradient(135deg, #7c6af7, #a78bfa)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14,
+        }}>✦</div>
+        <span style={{ color: '#e8e6e0', fontWeight: 500 }}>SkillMap</span>
+      </div>
+    </nav>
+    <div style={{ maxWidth: 800, margin: '0 auto', padding: '60px 24px' }}>
+      <Skeleton height={32} width={200} borderRadius={8} />
+      <div style={{ marginTop: 12, marginBottom: 40 }}>
+        <Skeleton height={16} width={160} borderRadius={6} />
+      </div>
+      {[1,2,3].map(i => (
+        <div key={i} style={{ marginBottom: 14 }}>
+          <Skeleton height={100} borderRadius={14} />
+        </div>
+      ))}
+    </div>
+  </div>
+  </PageWrapper>
+)
 
   return (
+    <PageWrapper>
     <div style={{ minHeight: '100vh', background: '#0d0d0f', fontFamily: "'DM Sans', sans-serif" }}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
 
@@ -132,7 +158,18 @@ const { data } = await supabase
               Paste your CV and tell us your dream job
             </div>
           </button>
-
+            {roadmaps.length === 0 && (
+            <div style={{
+                textAlign: 'center', padding: '60px 24px',
+                color: '#333340', fontSize: 14,
+            }}>
+                <div style={{ fontSize: 48, marginBottom: 16 }}>🗺️</div>
+                <p style={{ color: '#555565', marginBottom: 8 }}>No roadmaps yet</p>
+                <p style={{ color: '#333340', fontSize: 13 }}>
+                Click "New roadmap" above to get started
+                </p>
+            </div>
+            )}
           {/* Existing roadmaps */}
           {roadmaps.map(roadmap => (
             <RoadmapCard
@@ -144,6 +181,7 @@ const { data } = await supabase
         </div>
       </div>
     </div>
+    </PageWrapper>
   )
 }
 
@@ -167,6 +205,7 @@ function RoadmapCard({ roadmap, onClick }: { roadmap: Roadmap, onClick: () => vo
   })
 
   return (
+    <PageWrapper>
     <div
       onClick={onClick}
       style={{
@@ -226,5 +265,6 @@ function RoadmapCard({ roadmap, onClick }: { roadmap: Roadmap, onClick: () => vo
         </div>
       )}
     </div>
+    </PageWrapper>
   )
 }

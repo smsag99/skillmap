@@ -5,8 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import { useIsMobile } from '@/lib/useIsMobile'
-
-  
+import PageWrapper from '@/components/PageWrapper'
 
 export default function Signup() {
   const isMobile = useIsMobile()
@@ -39,6 +38,7 @@ export default function Signup() {
   }
 
   return (
+    <PageWrapper>
     <div style={{
       minHeight: '100vh', background: '#0d0d0f',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -105,5 +105,6 @@ export default function Signup() {
         </p>
       </div>
     </div>
+    </PageWrapper>
   )
 }

@@ -8,6 +8,7 @@ import { useIsMobile } from '@/lib/useIsMobile'
 // inside component:
 
 import Link from 'next/link'
+import PageWrapper from '@/components/PageWrapper'
 
 export default function Login() {
       const isMobile = useIsMobile()
@@ -40,6 +41,7 @@ export default function Login() {
   }
 
   return (
+    <PageWrapper>   
     <div style={{
       minHeight: '100vh', background: '#0d0d0f',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -107,5 +109,6 @@ export default function Login() {
         </p>
       </div>
     </div>
+    </PageWrapper>
   )
 }

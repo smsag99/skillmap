@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useIsMobile } from '@/lib/useIsMobile'
-
+import PageWrapper from '@/components/PageWrapper'
 
 export default function NewRoadmap() {
   const isMobile = useIsMobile()
@@ -84,6 +84,7 @@ export default function NewRoadmap() {
   }
 
   return (
+    <PageWrapper>
     <div style={{ minHeight: '100vh', background: '#0d0d0f', fontFamily: "'DM Sans', sans-serif" }}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
 
@@ -292,5 +293,6 @@ export default function NewRoadmap() {
         </div>
       </div>
     </div>
+    </PageWrapper>
   )
 }

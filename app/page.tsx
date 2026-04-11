@@ -2,12 +2,14 @@
 
 import Link from 'next/link'
 import { useIsMobile } from '@/lib/useIsMobile'
+import PageWrapper from '@/components/PageWrapper'
 
 
 export default function Landing() {
   const isMobile = useIsMobile()
   
   return (
+    <PageWrapper>
     <div style={{
       minHeight: '100vh', background: '#0d0d0f',
       fontFamily: "'DM Sans', sans-serif", color: '#e8e6e0',
@@ -113,5 +115,6 @@ export default function Landing() {
         Built with Next.js · Supabase · Gemini
       </div>
     </div>
+    </PageWrapper>
   )
 }

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useIsMobile } from '@/lib/useIsMobile'
+import PageWrapper from '@/components/PageWrapper'
 
 
 interface Task {
@@ -66,7 +67,45 @@ export default function RoadmapPage() {
   const completedCount = tasks.filter(t => t.done).length
   const progress = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0
 
+  useEffect(() => {
+  if (progress === 100 && tasks.length > 0) {
+    triggerConfetti()
+  }
+}, [progress])
+
+const triggerConfetti = () => {
+  const colors = ['#7c6af7', '#a78bfa', '#4ade80', '#f87171', '#fbbf24']
+  for (let i = 0; i < 60; i++) {
+    setTimeout(() => {
+      const el = document.createElement('div')
+      el.style.cssText = `
+        position: fixed;
+        width: 8px; height: 8px;
+        background: ${colors[Math.floor(Math.random() * colors.length)]};
+        border-radius: 50%;
+        left: ${Math.random() * 100}vw;
+        top: -10px;
+        pointer-events: none;
+        z-index: 9999;
+        animation: fall ${1.5 + Math.random()}s ease-in forwards;
+      `
+      document.body.appendChild(el)
+      setTimeout(() => el.remove(), 3000)
+    }, i * 40)
+  }
+
+  const style = document.createElement('style')
+  style.textContent = `
+    @keyframes fall {
+      to { transform: translateY(105vh) rotate(720deg); opacity: 0; }
+    }
+  `
+  document.head.appendChild(style)
+}
+
+
   if (loading) return (
+    <PageWrapper>
     <div style={{
       minHeight: '100vh', background: '#0d0d0f',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -74,9 +113,11 @@ export default function RoadmapPage() {
     }}>
       Loading your roadmap...
     </div>
+    </PageWrapper>
   )
 
   if (!roadmap) return (
+    <PageWrapper>
     <div style={{
       minHeight: '100vh', background: '#0d0d0f',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -84,9 +125,11 @@ export default function RoadmapPage() {
     }}>
       Roadmap not found.
     </div>
+    </PageWrapper>
   )
 
   return (
+    <PageWrapper>
     <div style={{ minHeight: '100vh', background: '#0d0d0f', fontFamily: "'DM Sans', sans-serif" }}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
 
@@ -271,5 +314,6 @@ export default function RoadmapPage() {
         )}
       </div>
     </div>
+    </PageWrapper>
   )
 }
