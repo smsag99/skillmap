@@ -5,8 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useIsMobile } from '@/lib/useIsMobile'
 
-// inside component:
-const isMobile = useIsMobile()
+
 interface Roadmap {
   id: string
   goal: string
@@ -15,6 +14,7 @@ interface Roadmap {
 }
 
 export default function Dashboard() {
+    const isMobile = useIsMobile()
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [roadmaps, setRoadmaps] = useState<Roadmap[]>([])

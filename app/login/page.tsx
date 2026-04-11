@@ -6,10 +6,11 @@ import { supabase } from '@/lib/supabase'
 import { useIsMobile } from '@/lib/useIsMobile'
 
 // inside component:
-const isMobile = useIsMobile()
+
 import Link from 'next/link'
 
 export default function Login() {
+      const isMobile = useIsMobile()
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')

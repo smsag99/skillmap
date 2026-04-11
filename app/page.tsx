@@ -3,10 +3,10 @@
 import Link from 'next/link'
 import { useIsMobile } from '@/lib/useIsMobile'
 
-// inside component:
-const isMobile = useIsMobile()
 
 export default function Landing() {
+  const isMobile = useIsMobile()
+  
   return (
     <div style={{
       minHeight: '100vh', background: '#0d0d0f',

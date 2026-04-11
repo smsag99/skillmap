@@ -4,9 +4,9 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useIsMobile } from '@/lib/useIsMobile'
 
-// inside component:
-const isMobile = useIsMobile()
+
 export default function NewRoadmap() {
+  const isMobile = useIsMobile()
   const router = useRouter()
   const [cv, setCv] = useState('')
   const [goal, setGoal] = useState('')
