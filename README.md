@@ -1,6 +1,7 @@
 # SkillMap — AI Career Coach
 
 > From your CV to your dream job in 30 days.
+> https://ai-skillmap.vercel.app
 
 SkillMap is a full-stack AI-powered career coaching app. Paste your CV, pick your dream job, and get a personalized 30-day learning roadmap — powered by Gemini AI.
 
