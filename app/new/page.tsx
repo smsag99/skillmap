@@ -89,7 +89,7 @@ export default function NewRoadmap() {
 
       {/* Navbar */}
       <nav style={{
-        display: 'flex', alignItems: 'center', padding: '16px 40px',
+        display: 'flex', alignItems: 'center', padding: isMobile ? '14px 20px' : '16px 40px',
         borderBottom: '1px solid #1e1e24', gap: 10,
       }}>
         <div style={{
@@ -100,7 +100,7 @@ export default function NewRoadmap() {
         <span style={{ color: '#e8e6e0', fontWeight: 500 }}>SkillMap</span>
       </nav>
 
-      <div style={{ maxWidth: 700, margin: '0 auto', padding: '60px 24px' }}>
+      <div style={{ maxWidth: 700, margin: '0 auto', padding: isMobile ? '32px 16px' : '60px 24px' }}>
         <h1 style={{
           color: '#e8e6e0', fontSize: 28, fontWeight: 400,
           letterSpacing: '-0.02em', margin: '0 0 8px',
@@ -220,7 +220,7 @@ export default function NewRoadmap() {
                 {analysis.gaps_summary}
               </p>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
                 <div>
                   <p style={{ color: '#4ade80', fontSize: 12, margin: '0 0 8px', fontWeight: 500 }}>
                     Current skills

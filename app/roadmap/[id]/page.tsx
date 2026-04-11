@@ -93,7 +93,7 @@ export default function RoadmapPage() {
       {/* Navbar */}
       <nav style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '16px 40px', borderBottom: '1px solid #1e1e24',
+        padding: isMobile ? '14px 20px' : '16px 40px', borderBottom: '1px solid #1e1e24',
       }}>
         <div
           onClick={() => router.push('/dashboard')}
@@ -119,7 +119,7 @@ export default function RoadmapPage() {
         </button>
       </nav>
 
-      <div style={{ maxWidth: 760, margin: '0 auto', padding: '48px 24px' }}>
+      <div style={{ maxWidth: 760, margin: '0 auto', padding: isMobile ? '32px 16px' : '48px 24px' }}>
 
         {/* Header */}
         <div style={{ marginBottom: 40 }}>

@@ -74,7 +74,7 @@ const { data } = await supabase
       {/* Navbar */}
       <nav style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '16px 40px', borderBottom: '1px solid #1e1e24',
+        padding: isMobile ? '14px 20px' : '16px 40px', borderBottom: '1px solid #1e1e24',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{
@@ -97,7 +97,7 @@ const { data } = await supabase
         </div>
       </nav>
 
-      <div style={{ maxWidth: 800, margin: '0 auto', padding: '60px 24px' }}>
+      <div style={{ maxWidth: 800, margin: '0 auto', padding: isMobile ? '32px 16px' : '60px 24px'}}>
         <h1 style={{
           color: '#e8e6e0', fontSize: 28, fontWeight: 400,
           letterSpacing: '-0.02em', margin: '0 0 8px',

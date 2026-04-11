@@ -17,7 +17,7 @@ export default function Landing() {
       {/* Navbar */}
       <nav style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '20px 48px', borderBottom: '1px solid #1e1e24',
+        padding: isMobile ? '14px 20px' : '20px 48px', borderBottom: '1px solid #1e1e24',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{
@@ -43,7 +43,7 @@ export default function Landing() {
       {/* Hero */}
       <div style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center',
-        textAlign: 'center', padding: '100px 24px 60px',
+        textAlign: 'center', padding: isMobile ? '60px 16px 40px' : '100px 24px 60px',
       }}>
         <div style={{
           display: 'inline-block', padding: '6px 16px', borderRadius: 20,
