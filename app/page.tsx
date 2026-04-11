@@ -1,6 +1,10 @@
 'use client'
 
 import Link from 'next/link'
+import { useIsMobile } from '@/lib/useIsMobile'
+
+// inside component:
+const isMobile = useIsMobile()
 
 export default function Landing() {
   return (

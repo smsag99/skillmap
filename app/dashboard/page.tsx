@@ -3,7 +3,10 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { useIsMobile } from '@/lib/useIsMobile'
 
+// inside component:
+const isMobile = useIsMobile()
 interface Roadmap {
   id: string
   goal: string

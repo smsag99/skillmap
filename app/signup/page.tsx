@@ -4,6 +4,10 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
+import { useIsMobile } from '@/lib/useIsMobile'
+
+// inside component:
+const isMobile = useIsMobile()
 
 export default function Signup() {
   const router = useRouter()
