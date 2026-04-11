@@ -6,7 +6,6 @@ import { supabase } from '@/lib/supabase'
 import { useIsMobile } from '@/lib/useIsMobile'
 import PageWrapper from '@/components/PageWrapper'
 
-
 interface Task {
   id: string
   day: number
@@ -20,20 +19,32 @@ interface Roadmap {
   goal: string
   skill_gaps: string[]
   created_at: string
+  is_public: boolean
 }
 
 export default function RoadmapPage() {
-  const isMobile = useIsMobile()
   const { id } = useParams()
   const router = useRouter()
+  const isMobile = useIsMobile()
   const [roadmap, setRoadmap] = useState<Roadmap | null>(null)
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedDay, setExpandedDay] = useState<number | null>(1)
+  const [isOwner, setIsOwner] = useState(false)
+  const [shareLoading, setShareLoading] = useState(false)
+  const [shareCopied, setShareCopied] = useState(false)
 
   useEffect(() => {
     loadRoadmap()
   }, [id])
+
+  useEffect(() => {
+    if (tasks.length > 0) {
+      const done = tasks.filter(t => t.done).length
+      const progress = Math.round((done / tasks.length) * 100)
+      if (progress === 100) triggerConfetti()
+    }
+  }, [tasks])
 
   const loadRoadmap = async () => {
     const { data: roadmapData } = await supabase
@@ -48,64 +59,69 @@ export default function RoadmapPage() {
       .eq('roadmap_id', id)
       .order('day')
 
+    const { data: { user } } = await supabase.auth.getUser()
+    setIsOwner(user?.id === roadmapData?.user_id)
     setRoadmap(roadmapData)
     setTasks(tasksData || [])
     setLoading(false)
   }
 
   const toggleTask = async (task: Task) => {
-    const { data } = await supabase
+    if (!isOwner) return
+    await supabase
       .from('tasks')
       .update({ done: !task.done })
       .eq('id', task.id)
-      .select()
-      .single()
-
     setTasks(prev => prev.map(t => t.id === task.id ? { ...t, done: !t.done } : t))
+  }
+
+  const togglePublic = async () => {
+    setShareLoading(true)
+    const newValue = !roadmap?.is_public
+    await supabase
+      .from('roadmaps')
+      .update({ is_public: newValue })
+      .eq('id', id)
+    setRoadmap(prev => prev ? { ...prev, is_public: newValue } : prev)
+    setShareLoading(false)
+
+    if (newValue) {
+      const url = `${window.location.origin}/roadmap/${id}`
+      await navigator.clipboard.writeText(url)
+      setShareCopied(true)
+      setTimeout(() => setShareCopied(false), 3000)
+    }
+  }
+
+  const triggerConfetti = () => {
+    const colors = ['#7c6af7', '#a78bfa', '#4ade80', '#f87171', '#fbbf24']
+    for (let i = 0; i < 60; i++) {
+      setTimeout(() => {
+        const el = document.createElement('div')
+        el.style.cssText = `
+          position: fixed;
+          width: 8px; height: 8px;
+          background: ${colors[Math.floor(Math.random() * colors.length)]};
+          border-radius: 50%;
+          left: ${Math.random() * 100}vw;
+          top: -10px;
+          pointer-events: none;
+          z-index: 9999;
+          animation: fall ${1.5 + Math.random()}s ease-in forwards;
+        `
+        document.body.appendChild(el)
+        setTimeout(() => el.remove(), 3000)
+      }, i * 40)
+    }
+    const style = document.createElement('style')
+    style.textContent = `@keyframes fall { to { transform: translateY(105vh) rotate(720deg); opacity: 0; } }`
+    document.head.appendChild(style)
   }
 
   const completedCount = tasks.filter(t => t.done).length
   const progress = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0
 
-  useEffect(() => {
-  if (progress === 100 && tasks.length > 0) {
-    triggerConfetti()
-  }
-}, [progress])
-
-const triggerConfetti = () => {
-  const colors = ['#7c6af7', '#a78bfa', '#4ade80', '#f87171', '#fbbf24']
-  for (let i = 0; i < 60; i++) {
-    setTimeout(() => {
-      const el = document.createElement('div')
-      el.style.cssText = `
-        position: fixed;
-        width: 8px; height: 8px;
-        background: ${colors[Math.floor(Math.random() * colors.length)]};
-        border-radius: 50%;
-        left: ${Math.random() * 100}vw;
-        top: -10px;
-        pointer-events: none;
-        z-index: 9999;
-        animation: fall ${1.5 + Math.random()}s ease-in forwards;
-      `
-      document.body.appendChild(el)
-      setTimeout(() => el.remove(), 3000)
-    }, i * 40)
-  }
-
-  const style = document.createElement('style')
-  style.textContent = `
-    @keyframes fall {
-      to { transform: translateY(105vh) rotate(720deg); opacity: 0; }
-    }
-  `
-  document.head.appendChild(style)
-}
-
-
   if (loading) return (
-    <PageWrapper>
     <div style={{
       minHeight: '100vh', background: '#0d0d0f',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -113,11 +129,9 @@ const triggerConfetti = () => {
     }}>
       Loading your roadmap...
     </div>
-    </PageWrapper>
   )
 
   if (!roadmap) return (
-    <PageWrapper>
     <div style={{
       minHeight: '100vh', background: '#0d0d0f',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -125,195 +139,223 @@ const triggerConfetti = () => {
     }}>
       Roadmap not found.
     </div>
-    </PageWrapper>
   )
 
   return (
     <PageWrapper>
-    <div style={{ minHeight: '100vh', background: '#0d0d0f', fontFamily: "'DM Sans', sans-serif" }}>
-      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+      <div style={{ minHeight: '100vh', background: '#0d0d0f', fontFamily: "'DM Sans', sans-serif" }}>
+        <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
 
-      {/* Navbar */}
-      <nav style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: isMobile ? '14px 20px' : '16px 40px', borderBottom: '1px solid #1e1e24',
-      }}>
-        <div
-          onClick={() => router.push('/dashboard')}
-          style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
-        >
-          <div style={{
-            width: 30, height: 30, borderRadius: 8,
-            background: 'linear-gradient(135deg, #7c6af7, #a78bfa)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14,
-          }}>✦</div>
-          <span style={{ color: '#e8e6e0', fontWeight: 500 }}>SkillMap</span>
-        </div>
-        <button
-          onClick={() => router.push('/dashboard')}
-          style={{
-            padding: '7px 16px', background: 'transparent',
-            border: '1px solid #2a2a34', borderRadius: 8,
-            color: '#7a7a8e', fontSize: 13, cursor: 'pointer',
-            fontFamily: 'inherit',
-          }}
-        >
-          ← Dashboard
-        </button>
-      </nav>
-
-      <div style={{ maxWidth: 760, margin: '0 auto', padding: isMobile ? '32px 16px' : '48px 24px' }}>
-
-        {/* Header */}
-        <div style={{ marginBottom: 40 }}>
-          <h1 style={{
-            color: '#e8e6e0', fontSize: 26, fontWeight: 400,
-            letterSpacing: '-0.02em', margin: '0 0 8px',
-          }}>
-            {roadmap.goal}
-          </h1>
-          <p style={{ color: '#555565', fontSize: 14, margin: '0 0 24px' }}>
-            30-day personalized learning roadmap
-          </p>
-
-          {/* Progress bar */}
-          <div style={{
-            padding: '20px 24px', background: '#111114',
-            border: '1px solid #1e1e24', borderRadius: 12,
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-              <span style={{ color: '#a0a0b0', fontSize: 13 }}>Overall progress</span>
-              <span style={{ color: '#a78bfa', fontSize: 13, fontWeight: 500 }}>
-                {completedCount}/{tasks.length} tasks · {progress}%
-              </span>
-            </div>
-            <div style={{ height: 8, background: '#1e1e24', borderRadius: 4 }}>
-              <div style={{
-                height: '100%', borderRadius: 4,
-                width: `${progress}%`,
-                background: 'linear-gradient(90deg, #7c6af7, #a78bfa)',
-                transition: 'width 0.4s ease',
-              }}/>
-            </div>
+        {/* Navbar */}
+        <nav style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: isMobile ? '14px 20px' : '16px 40px',
+          borderBottom: '1px solid #1e1e24',
+        }}>
+          <div
+            onClick={() => router.push('/dashboard')}
+            style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
+          >
+            <div style={{
+              width: 30, height: 30, borderRadius: 8,
+              background: 'linear-gradient(135deg, #7c6af7, #a78bfa)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14,
+            }}>✦</div>
+            <span style={{ color: '#e8e6e0', fontWeight: 500 }}>SkillMap</span>
           </div>
-        </div>
 
-        {/* Skill gaps */}
-        {roadmap.skill_gaps && roadmap.skill_gaps.length > 0 && (
-          <div style={{ marginBottom: 32 }}>
-            <p style={{ color: '#555565', fontSize: 12, margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              Targeting these skill gaps
-            </p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {roadmap.skill_gaps.map((skill: string, i: number) => (
-                <span key={i} style={{
-                  padding: '5px 12px', background: '#1a1a28',
-                  border: '1px solid #2a2a44', borderRadius: 20,
-                  color: '#a78bfa', fontSize: 12,
-                }}>
-                  {skill}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Tasks list */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {tasks.map(task => (
-            <div
-              key={task.id}
-              style={{
-                background: '#111114',
-                border: `1px solid ${expandedDay === task.day ? '#2a2a44' : '#1e1e24'}`,
-                borderRadius: 12, overflow: 'hidden',
-                transition: 'border-color 0.15s',
-              }}
-            >
-              {/* Task header */}
-              <div
-                onClick={() => setExpandedDay(expandedDay === task.day ? null : task.day)}
+          <div style={{ display: 'flex', gap: 10 }}>
+            {/* Share button — only for owner */}
+            {isOwner && (
+              <button
+                onClick={togglePublic}
+                disabled={shareLoading}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 14,
-                  padding: '16px 20px', cursor: 'pointer',
+                  padding: '7px 16px', borderRadius: 8, fontSize: 13,
+                  cursor: 'pointer', fontFamily: 'inherit',
+                  border: roadmap.is_public ? '1px solid #2a2a44' : '1px solid #2a2a34',
+                  background: roadmap.is_public ? '#1a1a28' : 'transparent',
+                  color: roadmap.is_public ? '#a78bfa' : '#7a7a8e',
+                  transition: 'all 0.15s',
                 }}
               >
-                {/* Checkbox */}
-                <div
-                  onClick={e => { e.stopPropagation(); toggleTask(task) }}
-                  style={{
-                    width: 22, height: 22, borderRadius: 6, flexShrink: 0,
-                    border: `2px solid ${task.done ? '#7c6af7' : '#2a2a34'}`,
-                    background: task.done ? 'linear-gradient(135deg, #7c6af7, #a78bfa)' : 'transparent',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    cursor: 'pointer', transition: 'all 0.15s',
-                  }}
-                >
-                  {task.done && <span style={{ color: '#fff', fontSize: 13 }}>✓</span>}
-                </div>
+                {shareCopied ? '✓ Link copied!' : roadmap.is_public ? '🔗 Shared' : 'Share'}
+              </button>
+            )}
+            <button
+              onClick={() => router.push('/dashboard')}
+              style={{
+                padding: '7px 16px', background: 'transparent',
+                border: '1px solid #2a2a34', borderRadius: 8,
+                color: '#7a7a8e', fontSize: 13, cursor: 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >
+              ← Dashboard
+            </button>
+          </div>
+        </nav>
 
-                {/* Day badge */}
-                <span style={{
-                  fontSize: 11, color: '#555565', flexShrink: 0,
-                  background: '#1a1a20', border: '1px solid #2a2a34',
-                  padding: '2px 8px', borderRadius: 4,
-                }}>
-                  Day {task.day}
-                </span>
-
-                {/* Title */}
-                <span style={{
-                  color: task.done ? '#555565' : '#e8e6e0',
-                  fontSize: 14, flex: 1,
-                  textDecoration: task.done ? 'line-through' : 'none',
-                  transition: 'color 0.15s',
-                }}>
-                  {task.title}
-                </span>
-
-                {/* Expand arrow */}
-                <span style={{
-                  color: '#333340', fontSize: 12, flexShrink: 0,
-                  transform: expandedDay === task.day ? 'rotate(180deg)' : 'rotate(0deg)',
-                  transition: 'transform 0.2s',
-                }}>
-                  ▼
-                </span>
-              </div>
-
-              {/* Expanded description */}
-              {expandedDay === task.day && (
-                <div style={{
-                  padding: '0 20px 16px 56px',
-                  color: '#7a7a8e', fontSize: 13, lineHeight: 1.7,
-                  borderTop: '1px solid #1a1a20',
-                  paddingTop: 12,
-                }}>
-                  {task.description}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* Completion message */}
-        {progress === 100 && (
+        {/* Share banner */}
+        {roadmap.is_public && !isOwner && (
           <div style={{
-            marginTop: 40, padding: '32px', textAlign: 'center',
-            background: '#111114', border: '1px solid #2a2a44',
-            borderRadius: 14,
+            background: '#1a1a28', borderBottom: '1px solid #2a2a44',
+            padding: '10px 40px', textAlign: 'center',
+            color: '#a78bfa', fontSize: 13,
           }}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>🎉</div>
-            <h2 style={{ color: '#e8e6e0', fontSize: 20, fontWeight: 400, margin: '0 0 8px' }}>
-              Roadmap complete!
-            </h2>
-            <p style={{ color: '#555565', fontSize: 14, margin: 0 }}>
-              You&apos;ve finished all 30 days. Time to apply for that dream job!
-            </p>
+            You are viewing a shared roadmap
           </div>
         )}
+
+        <div style={{ maxWidth: 760, margin: '0 auto', padding: isMobile ? '32px 16px' : '48px 24px' }}>
+
+          {/* Header */}
+          <div style={{ marginBottom: 40 }}>
+            <h1 style={{
+              color: '#e8e6e0', fontSize: isMobile ? 20 : 26, fontWeight: 400,
+              letterSpacing: '-0.02em', margin: '0 0 8px',
+            }}>
+              {roadmap.goal}
+            </h1>
+            <p style={{ color: '#555565', fontSize: 14, margin: '0 0 24px' }}>
+              30-day personalized learning roadmap
+            </p>
+
+            {/* Progress bar */}
+            <div style={{
+              padding: '20px 24px', background: '#111114',
+              border: '1px solid #1e1e24', borderRadius: 12,
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+                <span style={{ color: '#a0a0b0', fontSize: 13 }}>Overall progress</span>
+                <span style={{ color: '#a78bfa', fontSize: 13, fontWeight: 500 }}>
+                  {completedCount}/{tasks.length} tasks · {progress}%
+                </span>
+              </div>
+              <div style={{ height: 8, background: '#1e1e24', borderRadius: 4 }}>
+                <div style={{
+                  height: '100%', borderRadius: 4,
+                  width: `${progress}%`,
+                  background: 'linear-gradient(90deg, #7c6af7, #a78bfa)',
+                  transition: 'width 0.4s ease',
+                }}/>
+              </div>
+            </div>
+          </div>
+
+          {/* Skill gaps */}
+          {roadmap.skill_gaps && roadmap.skill_gaps.length > 0 && (
+            <div style={{ marginBottom: 32 }}>
+              <p style={{ color: '#555565', fontSize: 12, margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Targeting these skill gaps
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {roadmap.skill_gaps.map((skill: string, i: number) => (
+                  <span key={i} style={{
+                    padding: '5px 12px', background: '#1a1a28',
+                    border: '1px solid #2a2a44', borderRadius: 20,
+                    color: '#a78bfa', fontSize: 12,
+                  }}>
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Tasks list */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {tasks.map(task => (
+              <div
+                key={task.id}
+                style={{
+                  background: '#111114',
+                  border: `1px solid ${expandedDay === task.day ? '#2a2a44' : '#1e1e24'}`,
+                  borderRadius: 12, overflow: 'hidden',
+                  transition: 'border-color 0.15s',
+                  opacity: task.done ? 0.6 : 1,
+                }}
+              >
+                <div
+                  onClick={() => setExpandedDay(expandedDay === task.day ? null : task.day)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 14,
+                    padding: '16px 20px', cursor: 'pointer',
+                  }}
+                >
+                  {/* Checkbox */}
+                  {isOwner && (
+                    <div
+                      onClick={e => { e.stopPropagation(); toggleTask(task) }}
+                      style={{
+                        width: 22, height: 22, borderRadius: 6, flexShrink: 0,
+                        border: `2px solid ${task.done ? '#7c6af7' : '#2a2a34'}`,
+                        background: task.done ? 'linear-gradient(135deg, #7c6af7, #a78bfa)' : 'transparent',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        cursor: 'pointer', transition: 'all 0.15s',
+                      }}
+                    >
+                      {task.done && <span style={{ color: '#fff', fontSize: 13 }}>✓</span>}
+                    </div>
+                  )}
+
+                  {/* Day badge */}
+                  <span style={{
+                    fontSize: 11, color: '#555565', flexShrink: 0,
+                    background: '#1a1a20', border: '1px solid #2a2a34',
+                    padding: '2px 8px', borderRadius: 4,
+                  }}>
+                    Day {task.day}
+                  </span>
+
+                  {/* Title */}
+                  <span style={{
+                    color: task.done ? '#555565' : '#e8e6e0',
+                    fontSize: 14, flex: 1,
+                    textDecoration: task.done ? 'line-through' : 'none',
+                    transition: 'color 0.15s',
+                  }}>
+                    {task.title}
+                  </span>
+
+                  <span style={{
+                    color: '#333340', fontSize: 12, flexShrink: 0,
+                    transform: expandedDay === task.day ? 'rotate(180deg)' : 'rotate(0deg)',
+                    transition: 'transform 0.2s',
+                  }}>▼</span>
+                </div>
+
+                {expandedDay === task.day && (
+                  <div style={{
+                    padding: '12px 20px 16px 56px',
+                    color: '#7a7a8e', fontSize: 13, lineHeight: 1.7,
+                    borderTop: '1px solid #1a1a20',
+                  }}>
+                    {task.description}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Completion message */}
+          {progress === 100 && (
+            <div style={{
+              marginTop: 40, padding: '32px', textAlign: 'center',
+              background: '#111114', border: '1px solid #2a2a44',
+              borderRadius: 14,
+            }}>
+              <div style={{ fontSize: 40, marginBottom: 12 }}>🎉</div>
+              <h2 style={{ color: '#e8e6e0', fontSize: 20, fontWeight: 400, margin: '0 0 8px' }}>
+                Roadmap complete!
+              </h2>
+              <p style={{ color: '#555565', fontSize: 14, margin: 0 }}>
+                You&apos;ve finished all 30 days. Time to apply for that dream job!
+              </p>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
     </PageWrapper>
   )
 }
