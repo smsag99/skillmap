@@ -112,7 +112,7 @@ export default function Landing() {
         textAlign: 'center', padding: '24px',
         borderTop: '1px solid #1e1e24', color: '#333340', fontSize: 13,
       }}>
-        Built with Next.js · Supabase · Gemini
+        Built by <span style={{ color: '#a78bfa' }}>Mohammad Sheikh</span> ·
       </div>
     </div>
     </PageWrapper>

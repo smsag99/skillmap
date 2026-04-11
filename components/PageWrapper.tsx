@@ -5,15 +5,16 @@ export default function PageWrapper({ children }: { children: React.ReactNode })
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
-    const t = setTimeout(() => setVisible(true), 50)
+    const t = setTimeout(() => setVisible(true), 10)
     return () => clearTimeout(t)
   }, [])
 
   return (
     <div style={{
       opacity: visible ? 1 : 0,
-      transform: visible ? 'translateY(0)' : 'translateY(8px)',
-      transition: 'opacity 0.4s ease, transform 0.4s ease',
+      transition: 'opacity 0.3s ease',
+      background: '#0d0d0f',
+      minHeight: '100vh',
     }}>
       {children}
     </div>
