@@ -6,9 +6,13 @@
 }
 
 body {
-  -webkit-font-smoothing: antialiased;
+  margin: 0;
+  padding: 0;
+  background: #0d0d0f;
 }
-
+html {
+  background: #0d0d0f;
+}
 @media (max-width: 768px) {
   nav {
     padding: 14px 20px !important;
