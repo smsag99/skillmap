@@ -35,9 +35,28 @@ export default function RoadmapPage() {
   const [shareCopied, setShareCopied] = useState(false)
   const [tips, setTips] = useState<Record<string, string>>({})
   const [tipsLoading, setTipsLoading] = useState<Record<string, boolean>>({})
-
+    const [reminderEmail, setReminderEmail] = useState('')
+    const [reminderSent, setReminderSent] = useState(false)
+    const [reminderLoading, setReminderLoading] = useState(false)
+    const [showReminderInput, setShowReminderInput] = useState(false)
   useEffect(() => { loadRoadmap() }, [id])
-
+const sendReminder = async () => {
+  if (!reminderEmail.trim()) return
+  setReminderLoading(true)
+  try {
+    await fetch('/api/reminder', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ roadmapId: id, email: reminderEmail }),
+    })
+    setReminderSent(true)
+    setShowReminderInput(false)
+  } catch {
+    console.error('Failed to send reminder')
+  } finally {
+    setReminderLoading(false)
+  }
+}
   useEffect(() => {
     if (tasks.length > 0) {
       const done = tasks.filter(t => t.done).length
@@ -347,7 +366,73 @@ export default function RoadmapPage() {
                 You&apos;ve finished all 30 days. Time to apply for that dream job!
               </p>
             </div>
+            
           )}
+          {/* Email reminder */}
+{isOwner && (
+  <div style={{
+    marginTop: 32, padding: '24px', background: '#111114',
+    border: '1px solid #1e1e24', borderRadius: 14,
+  }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div>
+        <p style={{ color: '#e8e6e0', fontSize: 14, fontWeight: 500, margin: '0 0 4px' }}>
+          Email reminder
+        </p>
+        <p style={{ color: '#555565', fontSize: 13, margin: 0 }}>
+          Get a daily nudge to keep you on track
+        </p>
+      </div>
+      {!showReminderInput && !reminderSent && (
+        <button
+          onClick={() => setShowReminderInput(true)}
+          style={{
+            padding: '8px 18px', background: 'transparent',
+            border: '1px solid #2a2a34', borderRadius: 8,
+            color: '#a78bfa', fontSize: 13, cursor: 'pointer',
+            fontFamily: 'inherit',
+          }}
+        >
+          Set up
+        </button>
+      )}
+      {reminderSent && (
+        <span style={{ color: '#4ade80', fontSize: 13 }}>✓ Email sent!</span>
+      )}
+    </div>
+
+    {showReminderInput && (
+      <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+        <input
+          type="email"
+          placeholder="your@email.com"
+          value={reminderEmail}
+          onChange={e => setReminderEmail(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && sendReminder()}
+          style={{
+            flex: 1, padding: '10px 14px',
+            background: '#1a1a20', border: '1px solid #2a2a34',
+            borderRadius: 8, color: '#e8e6e0', fontSize: 14,
+            outline: 'none', fontFamily: 'inherit',
+          }}
+        />
+        <button
+          onClick={sendReminder}
+          disabled={reminderLoading}
+          style={{
+            padding: '10px 18px',
+            background: 'linear-gradient(135deg, #7c6af7, #a78bfa)',
+            border: 'none', borderRadius: 8, color: '#fff',
+            fontSize: 14, cursor: 'pointer', fontFamily: 'inherit',
+            opacity: reminderLoading ? 0.7 : 1,
+          }}
+        >
+          {reminderLoading ? 'Sending...' : 'Send'}
+        </button>
+      </div>
+    )}
+  </div>
+)}
         </div>
       </div>
     </PageWrapper>
