@@ -33,10 +33,10 @@ export default function RoadmapPage() {
   const [isOwner, setIsOwner] = useState(false)
   const [shareLoading, setShareLoading] = useState(false)
   const [shareCopied, setShareCopied] = useState(false)
+  const [tips, setTips] = useState<Record<string, string>>({})
+  const [tipsLoading, setTipsLoading] = useState<Record<string, boolean>>({})
 
-  useEffect(() => {
-    loadRoadmap()
-  }, [id])
+  useEffect(() => { loadRoadmap() }, [id])
 
   useEffect(() => {
     if (tasks.length > 0) {
@@ -48,17 +48,9 @@ export default function RoadmapPage() {
 
   const loadRoadmap = async () => {
     const { data: roadmapData } = await supabase
-      .from('roadmaps')
-      .select('*')
-      .eq('id', id)
-      .single()
-
+      .from('roadmaps').select('*').eq('id', id).single()
     const { data: tasksData } = await supabase
-      .from('tasks')
-      .select('*')
-      .eq('roadmap_id', id)
-      .order('day')
-
+      .from('tasks').select('*').eq('roadmap_id', id).order('day')
     const { data: { user } } = await supabase.auth.getUser()
     setIsOwner(user?.id === roadmapData?.user_id)
     setRoadmap(roadmapData)
@@ -68,28 +60,43 @@ export default function RoadmapPage() {
 
   const toggleTask = async (task: Task) => {
     if (!isOwner) return
-    await supabase
-      .from('tasks')
-      .update({ done: !task.done })
-      .eq('id', task.id)
+    await supabase.from('tasks').update({ done: !task.done }).eq('id', task.id)
     setTasks(prev => prev.map(t => t.id === task.id ? { ...t, done: !t.done } : t))
   }
 
   const togglePublic = async () => {
     setShareLoading(true)
     const newValue = !roadmap?.is_public
-    await supabase
-      .from('roadmaps')
-      .update({ is_public: newValue })
-      .eq('id', id)
+    await supabase.from('roadmaps').update({ is_public: newValue }).eq('id', id)
     setRoadmap(prev => prev ? { ...prev, is_public: newValue } : prev)
     setShareLoading(false)
-
     if (newValue) {
-      const url = `${window.location.origin}/roadmap/${id}`
-      await navigator.clipboard.writeText(url)
+      await navigator.clipboard.writeText(`${window.location.origin}/roadmap/${id}`)
       setShareCopied(true)
       setTimeout(() => setShareCopied(false), 3000)
+    }
+  }
+
+  const getTip = async (task: Task) => {
+    if (tips[task.id] || tipsLoading[task.id]) return
+    setTipsLoading(prev => ({ ...prev, [task.id]: true }))
+    try {
+      const res = await fetch('/api/tip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: task.title,
+          description: task.description,
+          day: task.day,
+          goal: roadmap?.goal,
+        }),
+      })
+      const data = await res.json()
+      setTips(prev => ({ ...prev, [task.id]: data.tip }))
+    } catch {
+      setTips(prev => ({ ...prev, [task.id]: 'Could not load tip. Try again.' }))
+    } finally {
+      setTipsLoading(prev => ({ ...prev, [task.id]: false }))
     }
   }
 
@@ -99,22 +106,18 @@ export default function RoadmapPage() {
       setTimeout(() => {
         const el = document.createElement('div')
         el.style.cssText = `
-          position: fixed;
-          width: 8px; height: 8px;
-          background: ${colors[Math.floor(Math.random() * colors.length)]};
-          border-radius: 50%;
-          left: ${Math.random() * 100}vw;
-          top: -10px;
-          pointer-events: none;
-          z-index: 9999;
-          animation: fall ${1.5 + Math.random()}s ease-in forwards;
+          position:fixed;width:8px;height:8px;
+          background:${colors[Math.floor(Math.random() * colors.length)]};
+          border-radius:50%;left:${Math.random() * 100}vw;top:-10px;
+          pointer-events:none;z-index:9999;
+          animation:fall ${1.5 + Math.random()}s ease-in forwards;
         `
         document.body.appendChild(el)
         setTimeout(() => el.remove(), 3000)
       }, i * 40)
     }
     const style = document.createElement('style')
-    style.textContent = `@keyframes fall { to { transform: translateY(105vh) rotate(720deg); opacity: 0; } }`
+    style.textContent = `@keyframes fall{to{transform:translateY(105vh) rotate(720deg);opacity:0;}}`
     document.head.appendChild(style)
   }
 
@@ -126,9 +129,7 @@ export default function RoadmapPage() {
       minHeight: '100vh', background: '#0d0d0f',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       color: '#555565', fontFamily: "'DM Sans', sans-serif", fontSize: 14,
-    }}>
-      Loading your roadmap...
-    </div>
+    }}>Loading your roadmap...</div>
   )
 
   if (!roadmap) return (
@@ -136,9 +137,7 @@ export default function RoadmapPage() {
       minHeight: '100vh', background: '#0d0d0f',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       color: '#555565', fontFamily: "'DM Sans', sans-serif", fontSize: 14,
-    }}>
-      Roadmap not found.
-    </div>
+    }}>Roadmap not found.</div>
   )
 
   return (
@@ -152,10 +151,8 @@ export default function RoadmapPage() {
           padding: isMobile ? '14px 20px' : '16px 40px',
           borderBottom: '1px solid #1e1e24',
         }}>
-          <div
-            onClick={() => router.push('/dashboard')}
-            style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
-          >
+          <div onClick={() => router.push('/dashboard')}
+            style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
             <div style={{
               width: 30, height: 30, borderRadius: 8,
               background: 'linear-gradient(135deg, #7c6af7, #a78bfa)',
@@ -163,40 +160,28 @@ export default function RoadmapPage() {
             }}>✦</div>
             <span style={{ color: '#e8e6e0', fontWeight: 500 }}>SkillMap</span>
           </div>
-
           <div style={{ display: 'flex', gap: 10 }}>
-            {/* Share button — only for owner */}
             {isOwner && (
-              <button
-                onClick={togglePublic}
-                disabled={shareLoading}
-                style={{
-                  padding: '7px 16px', borderRadius: 8, fontSize: 13,
-                  cursor: 'pointer', fontFamily: 'inherit',
-                  border: roadmap.is_public ? '1px solid #2a2a44' : '1px solid #2a2a34',
-                  background: roadmap.is_public ? '#1a1a28' : 'transparent',
-                  color: roadmap.is_public ? '#a78bfa' : '#7a7a8e',
-                  transition: 'all 0.15s',
-                }}
-              >
+              <button onClick={togglePublic} disabled={shareLoading} style={{
+                padding: '7px 16px', borderRadius: 8, fontSize: 13,
+                cursor: 'pointer', fontFamily: 'inherit',
+                border: roadmap.is_public ? '1px solid #2a2a44' : '1px solid #2a2a34',
+                background: roadmap.is_public ? '#1a1a28' : 'transparent',
+                color: roadmap.is_public ? '#a78bfa' : '#7a7a8e',
+                transition: 'all 0.15s',
+              }}>
                 {shareCopied ? '✓ Link copied!' : roadmap.is_public ? '🔗 Shared' : 'Share'}
               </button>
             )}
-            <button
-              onClick={() => router.push('/dashboard')}
-              style={{
-                padding: '7px 16px', background: 'transparent',
-                border: '1px solid #2a2a34', borderRadius: 8,
-                color: '#7a7a8e', fontSize: 13, cursor: 'pointer',
-                fontFamily: 'inherit',
-              }}
-            >
-              ← Dashboard
-            </button>
+            <button onClick={() => router.push('/dashboard')} style={{
+              padding: '7px 16px', background: 'transparent',
+              border: '1px solid #2a2a34', borderRadius: 8,
+              color: '#7a7a8e', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
+            }}>← Dashboard</button>
           </div>
         </nav>
 
-        {/* Share banner */}
+        {/* Shared banner */}
         {roadmap.is_public && !isOwner && (
           <div style={{
             background: '#1a1a28', borderBottom: '1px solid #2a2a44',
@@ -214,14 +199,10 @@ export default function RoadmapPage() {
             <h1 style={{
               color: '#e8e6e0', fontSize: isMobile ? 20 : 26, fontWeight: 400,
               letterSpacing: '-0.02em', margin: '0 0 8px',
-            }}>
-              {roadmap.goal}
-            </h1>
+            }}>{roadmap.goal}</h1>
             <p style={{ color: '#555565', fontSize: 14, margin: '0 0 24px' }}>
               30-day personalized learning roadmap
             </p>
-
-            {/* Progress bar */}
             <div style={{
               padding: '20px 24px', background: '#111114',
               border: '1px solid #1e1e24', borderRadius: 12,
@@ -234,8 +215,7 @@ export default function RoadmapPage() {
               </div>
               <div style={{ height: 8, background: '#1e1e24', borderRadius: 4 }}>
                 <div style={{
-                  height: '100%', borderRadius: 4,
-                  width: `${progress}%`,
+                  height: '100%', borderRadius: 4, width: `${progress}%`,
                   background: 'linear-gradient(90deg, #7c6af7, #a78bfa)',
                   transition: 'width 0.4s ease',
                 }}/>
@@ -244,7 +224,7 @@ export default function RoadmapPage() {
           </div>
 
           {/* Skill gaps */}
-          {roadmap.skill_gaps && roadmap.skill_gaps.length > 0 && (
+          {roadmap.skill_gaps?.length > 0 && (
             <div style={{ marginBottom: 32 }}>
               <p style={{ color: '#555565', fontSize: 12, margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                 Targeting these skill gaps
@@ -255,35 +235,34 @@ export default function RoadmapPage() {
                     padding: '5px 12px', background: '#1a1a28',
                     border: '1px solid #2a2a44', borderRadius: 20,
                     color: '#a78bfa', fontSize: 12,
-                  }}>
-                    {skill}
-                  </span>
+                  }}>{skill}</span>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Tasks list */}
+          {/* Tasks */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {tasks.map(task => (
-              <div
-                key={task.id}
-                style={{
-                  background: '#111114',
-                  border: `1px solid ${expandedDay === task.day ? '#2a2a44' : '#1e1e24'}`,
-                  borderRadius: 12, overflow: 'hidden',
-                  transition: 'border-color 0.15s',
-                  opacity: task.done ? 0.6 : 1,
-                }}
-              >
+              <div key={task.id} style={{
+                background: '#111114',
+                border: `1px solid ${expandedDay === task.day ? '#2a2a44' : '#1e1e24'}`,
+                borderRadius: 12, overflow: 'hidden',
+                transition: 'border-color 0.15s',
+                opacity: task.done ? 0.6 : 1,
+              }}>
+                {/* Task header */}
                 <div
-                  onClick={() => setExpandedDay(expandedDay === task.day ? null : task.day)}
+                  onClick={() => {
+                    const newDay = expandedDay === task.day ? null : task.day
+                    setExpandedDay(newDay)
+                    if (newDay) getTip(task)
+                  }}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 14,
                     padding: '16px 20px', cursor: 'pointer',
                   }}
                 >
-                  {/* Checkbox */}
                   {isOwner && (
                     <div
                       onClick={e => { e.stopPropagation(); toggleTask(task) }}
@@ -298,52 +277,67 @@ export default function RoadmapPage() {
                       {task.done && <span style={{ color: '#fff', fontSize: 13 }}>✓</span>}
                     </div>
                   )}
-
-                  {/* Day badge */}
                   <span style={{
                     fontSize: 11, color: '#555565', flexShrink: 0,
                     background: '#1a1a20', border: '1px solid #2a2a34',
                     padding: '2px 8px', borderRadius: 4,
-                  }}>
-                    Day {task.day}
-                  </span>
-
-                  {/* Title */}
+                  }}>Day {task.day}</span>
                   <span style={{
-                    color: task.done ? '#555565' : '#e8e6e0',
-                    fontSize: 14, flex: 1,
+                    color: task.done ? '#555565' : '#e8e6e0', fontSize: 14, flex: 1,
                     textDecoration: task.done ? 'line-through' : 'none',
                     transition: 'color 0.15s',
-                  }}>
-                    {task.title}
-                  </span>
-
+                  }}>{task.title}</span>
                   <span style={{
                     color: '#333340', fontSize: 12, flexShrink: 0,
-                    transform: expandedDay === task.day ? 'rotate(180deg)' : 'rotate(0deg)',
+                    transform: expandedDay === task.day ? 'rotate(180deg)' : 'rotate(0)',
                     transition: 'transform 0.2s',
                   }}>▼</span>
                 </div>
 
+                {/* Expanded content */}
                 {expandedDay === task.day && (
                   <div style={{
-                    padding: '12px 20px 16px 56px',
-                    color: '#7a7a8e', fontSize: 13, lineHeight: 1.7,
+                    padding: '12px 20px 20px',
+                    paddingLeft: isOwner ? 56 : 20,
                     borderTop: '1px solid #1a1a20',
                   }}>
-                    {task.description}
+                    <p style={{ color: '#7a7a8e', fontSize: 13, lineHeight: 1.7, margin: '0 0 16px' }}>
+                      {task.description}
+                    </p>
+
+                    {/* AI Tip */}
+                    {tips[task.id] ? (
+                      <div style={{
+                        padding: '14px 16px', background: '#1a1a28',
+                        border: '1px solid #2a2a44', borderRadius: 10,
+                      }}>
+                        <p style={{ color: '#555565', fontSize: 11, margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                          ✦ AI tip
+                        </p>
+                        <p style={{ color: '#a0a0b0', fontSize: 13, lineHeight: 1.7, margin: 0 }}>
+                          {tips[task.id]}
+                        </p>
+                      </div>
+                    ) : tipsLoading[task.id] ? (
+                      <div style={{
+                        padding: '14px 16px', background: '#1a1a28',
+                        border: '1px solid #2a2a44', borderRadius: 10,
+                        color: '#555565', fontSize: 13,
+                      }}>
+                        ✦ Getting AI tip...
+                      </div>
+                    ) : null}
                   </div>
                 )}
               </div>
             ))}
           </div>
 
-          {/* Completion message */}
+          {/* Completion */}
           {progress === 100 && (
             <div style={{
               marginTop: 40, padding: '32px', textAlign: 'center',
-              background: '#111114', border: '1px solid #2a2a44',
-              borderRadius: 14,
+              background: '#111114', border: '1px solid #2a2a44', borderRadius: 14,
             }}>
               <div style={{ fontSize: 40, marginBottom: 12 }}>🎉</div>
               <h2 style={{ color: '#e8e6e0', fontSize: 20, fontWeight: 400, margin: '0 0 8px' }}>
