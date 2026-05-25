@@ -176,6 +176,10 @@ if (loading) return (
               key={roadmap.id}
               roadmap={roadmap}
               onClick={() => router.push(`/roadmap/${roadmap.id}`)}
+              onDelete={async () => {
+                await supabase.from('roadmaps').delete().eq('id', roadmap.id)
+                setRoadmaps(prev => prev.filter(r => r.id !== roadmap.id))
+              }}
             />
           ))}
         </div>
@@ -185,7 +189,7 @@ if (loading) return (
   )
 }
 
-function RoadmapCard({ roadmap, onClick }: { roadmap: Roadmap, onClick: () => void }) {
+function RoadmapCard({ roadmap, onClick, onDelete }: { roadmap: Roadmap, onClick: () => void, onDelete: () => void }) {
   const [progress, setProgress] = useState<number | null>(null)
 
   useEffect(() => {
@@ -205,7 +209,6 @@ function RoadmapCard({ roadmap, onClick }: { roadmap: Roadmap, onClick: () => vo
   })
 
   return (
-    <PageWrapper>
     <div
       onClick={onClick}
       style={{
@@ -217,20 +220,33 @@ function RoadmapCard({ roadmap, onClick }: { roadmap: Roadmap, onClick: () => vo
       onMouseOut={e => (e.currentTarget.style.borderColor = '#1e1e24')}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-        <div>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <h3 style={{ color: '#e8e6e0', fontSize: 15, fontWeight: 500, margin: '0 0 4px' }}>
             {roadmap.goal}
           </h3>
           <span style={{ color: '#333340', fontSize: 12 }}>Created {date}</span>
         </div>
-        {progress !== null && (
-          <span style={{
-            fontSize: 13, fontWeight: 500,
-            color: progress === 100 ? '#4ade80' : '#a78bfa',
-          }}>
-            {progress === 100 ? '✓ Complete' : `${progress}%`}
-          </span>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+          {progress !== null && (
+            <span style={{
+              fontSize: 13, fontWeight: 500,
+              color: progress === 100 ? '#4ade80' : '#a78bfa',
+            }}>
+              {progress === 100 ? '✓ Complete' : `${progress}%`}
+            </span>
+          )}
+          <button
+            onClick={e => { e.stopPropagation(); onDelete() }}
+            style={{
+              background: 'transparent', border: '1px solid #2a2a34',
+              borderRadius: 6, color: '#555565', fontSize: 12,
+              padding: '4px 10px', cursor: 'pointer', fontFamily: 'inherit',
+              transition: 'all 0.15s',
+            }}
+            onMouseOver={e => { e.currentTarget.style.borderColor = '#f87171'; e.currentTarget.style.color = '#f87171' }}
+            onMouseOut={e => { e.currentTarget.style.borderColor = '#2a2a34'; e.currentTarget.style.color = '#555565' }}
+          >Delete</button>
+        </div>
       </div>
 
       {/* Progress bar */}
@@ -265,6 +281,5 @@ function RoadmapCard({ roadmap, onClick }: { roadmap: Roadmap, onClick: () => vo
         </div>
       )}
     </div>
-    </PageWrapper>
   )
 }
