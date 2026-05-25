@@ -78,25 +78,29 @@ async function generateWithRetry(contents: any, retries = 3) {
 // ── route handler ─────────────────────────────────────────────────────────────
 export async function POST(req: Request) {
   const body = await req.json()
-  const { goal, cv, pdf } = body
+  const { goal, cv, pdf, mode = 'rag' } = body
 
-  // 1. Retrieve relevant context from vector DB (strict RAG — no fallback to LLM knowledge)
-  const ragQuery = `${goal} ${cv ?? ''}`.slice(0, 1000) // keep embedding short
-  const context = await retrieveContext(ragQuery)
+  // 1. Retrieve context — only when mode is 'rag'
+  let contextBlock = ''
 
-  if (!context) {
-    return Response.json(
-      { error: "I don't have enough information about this job in my knowledge base to provide an analysis." },
-      { status: 404 }
-    )
-  }
+  if (mode === 'rag') {
+    const ragQuery = `${goal} ${cv ?? ''}`.slice(0, 1000)
+    const context = await retrieveContext(ragQuery)
 
-  const contextBlock = `
+    if (!context) {
+      return Response.json(
+        { error: "I don't have enough information about this job in my knowledge base. Try switching to LLM mode." },
+        { status: 404 }
+      )
+    }
+
+    contextBlock = `
 ## Relevant industry knowledge (use this to improve your analysis):
 ${context}
 `
+  }
 
-  // 2. Build prompt — same structure as before, RAG context injected at top
+  // 2. Build prompt — same structure as before, RAG context injected at top if present
   const prompt = `
 You are an expert career coach and CV reviewer. Analyze this CV for the given dream job goal.
 ${contextBlock}

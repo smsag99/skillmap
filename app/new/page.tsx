@@ -32,6 +32,7 @@ export default function NewRoadmap() {
   const [analysis, setAnalysis] = useState<Analysis | null>(null)
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState<'gaps' | 'feedback'>('gaps')
+  const [analysisMode, setAnalysisMode] = useState<'rag' | 'llm'>('rag')
 
   const handleAnalyze = async () => {
     if ((!cv.trim() && !cvFile) || !goal.trim()) {
@@ -53,6 +54,8 @@ export default function NewRoadmap() {
       body = { cv, goal }
     }
 
+    body.mode = analysisMode
+
     try {
       const res = await fetch('/api/analyze', {
         method: 'POST',
@@ -60,6 +63,11 @@ export default function NewRoadmap() {
         body: JSON.stringify(body),
       })
       const data = await res.json()
+      if (data.error) {
+        setError(data.error)
+        setStep('input')
+        return
+      }
       setAnalysis(data)
       if (data.extracted_text) setCv(data.extracted_text)
       setStep('input')
@@ -199,6 +207,34 @@ export default function NewRoadmap() {
                 value={goal} onChange={e => setGoal(e.target.value)}
                 rows={3} style={textareaStyle}
               />
+            </div>
+
+            {/* Analysis mode toggle */}
+            <div>
+              <label style={{ color: '#a0a0b0', fontSize: 13, display: 'block', marginBottom: 8 }}>
+                Analysis mode
+              </label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {([
+                  { key: 'rag', label: '🗂 RAG', desc: 'Uses your knowledge base' },
+                  { key: 'llm', label: '🤖 LLM', desc: "Uses Gemini's own knowledge" },
+                ] as const).map(opt => (
+                  <button
+                    key={opt.key}
+                    onClick={() => setAnalysisMode(opt.key)}
+                    style={{
+                      padding: '8px 18px', borderRadius: 8, fontSize: 13,
+                      border: '1px solid #2a2a34', cursor: 'pointer', fontFamily: 'inherit',
+                      background: analysisMode === opt.key ? '#2a2a44' : 'transparent',
+                      color: analysisMode === opt.key ? '#a78bfa' : '#555565',
+                      display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2,
+                    }}
+                  >
+                    <span>{opt.label}</span>
+                    <span style={{ fontSize: 11, opacity: 0.7 }}>{opt.desc}</span>
+                  </button>
+                ))}
+              </div>
             </div>
 
             {error && <p style={{ color: '#f87171', fontSize: 13, margin: 0 }}>{error}</p>}
