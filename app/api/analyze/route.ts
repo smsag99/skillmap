@@ -74,16 +74,21 @@ export async function POST(req: Request) {
   const body = await req.json()
   const { goal, cv, pdf } = body
 
-  // 1. Retrieve relevant context from vector DB (best-effort)
+  // 1. Retrieve relevant context from vector DB (strict RAG — no fallback to LLM knowledge)
   const ragQuery = `${goal} ${cv ?? ''}`.slice(0, 1000) // keep embedding short
   const context = await retrieveContext(ragQuery)
 
-  const contextBlock = context
-    ? `
+  if (!context) {
+    return Response.json(
+      { error: "I don't have enough information about this job in my knowledge base to provide an analysis." },
+      { status: 404 }
+    )
+  }
+
+  const contextBlock = `
 ## Relevant industry knowledge (use this to improve your analysis):
 ${context}
 `
-    : ''
 
   // 2. Build prompt — same structure as before, RAG context injected at top
   const prompt = `
