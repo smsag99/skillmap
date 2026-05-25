@@ -36,7 +36,13 @@ async function retrieveContext(query: string, matchCount = 5): Promise<string> {
 
     if (error || !data || data.length === 0) return ''
 
-    return (data as { content: string }[])
+    // Filter out low-relevance results — only keep docs above similarity threshold
+    const relevant = (data as { content: string; similarity: number }[])
+      .filter((d) => d.similarity >= 0.5)
+
+    if (relevant.length === 0) return ''
+
+    return relevant
       .map((d) => d.content)
       .join('\n\n---\n\n')
   } catch (err) {
