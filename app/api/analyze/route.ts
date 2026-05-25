@@ -36,9 +36,13 @@ async function retrieveContext(query: string, matchCount = 5): Promise<string> {
 
     if (error || !data || data.length === 0) return ''
 
+    // Log scores so you can tune the threshold in Vercel logs
+    console.log('RAG scores:', (data as { content: string; similarity: number }[])
+      .map((d) => `${d.similarity.toFixed(3)} — ${d.content.slice(0, 50)}`))
+
     // Filter out low-relevance results — only keep docs above similarity threshold
     const relevant = (data as { content: string; similarity: number }[])
-      .filter((d) => d.similarity >= 0.5)
+      .filter((d) => d.similarity >= 0.75)
 
     if (relevant.length === 0) return ''
 
